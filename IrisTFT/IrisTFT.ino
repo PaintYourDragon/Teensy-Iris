@@ -16,7 +16,6 @@
 // process) to screen coordinates.  So it's very quick (30-40 fps for
 // regular or overclocked Teensy) while still providing the cool and
 // realistic muscle contraction effect of the iris.
-// More notes in eyeData.h.
 
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7735.h> // Hardware-specific library
@@ -30,7 +29,7 @@
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
 // Newfangled SPI transaction stuff is used for fast SPI on Teensy 3.1:
-SPISettings settings(32000000, MSBFIRST, SPI_MODE0); 
+SPISettings settings(24000000, MSBFIRST, SPI_MODE0); // 24 MHz max
 
 void setup(void) {
   Serial.begin(9600);
@@ -47,11 +46,12 @@ void loop() {
 void drawEye(void) {
 
   uint8_t  x, y, a, lo;
-  uint16_t pixel;
+  uint16_t p;
   uint32_t d, scale;
 
-  scale = analogRead(0);               // Read pot on A0
-  scale = 256 + (scale * scale) / 256; // Setup for fixed-point math later
+  scale = analogRead(0); // Read pot on A0
+  // Set up for fixed-point linear scaling calculation later on:
+  scale = map(scale * scale, 0, 1023 * 1023, IMG_HEIGHT, IMG_HEIGHT * 64);
 
   // Set up raw write to full screen:
   SPI.beginTransaction(settings);
@@ -66,43 +66,21 @@ void drawEye(void) {
   // either using several setAddrWindows as needed, or a
   // tighter loop of zero-writes on those pixels...
   // not stressing over this right now, already stupid fast.
-
-  for(y=0; y<128; y++) {               // For each row...
-    for(x=0; x<128; x++) {             // For each column...
-      d = (dist[y][x] * scale) / 1024; // Fetch polar distance, do scale
-      if((d > 0) && (d < 64)) {        // Within iris area?
-        a     = angle[y][x];           // Fetch polar angle value for pixel
-        pixel = img[d][a];             // Fetch 16-bit pixel value from map
-#ifdef PIPELINE
-        // Haven't extensively benchmarked this and don't know if SPI
-        // pipelining really benefits anything here on the Teensy3, so
-        // this is disabled by default.
-        while(!(SPSR & _BV(SPIF))); // SPSR and SPDR are of course AVR registers,
-        SPDR = pixel >> 8;          // but Teensyduino adapts to Teensy3 equivs
-        lo = pixel & 0xFF;          // because Paul S. is awesome that way.
-        while(!(SPSR & _BV(SPIF))); // Wouldn't surprise me if he has SPI.transfer()
-        SPDR = lo;                  // already doing pipelining dy default.
-#else
-        // Use normal vanilla transfers by default.
-        SPI.transfer(pixel >> 8);
-        SPI.transfer(pixel & 0xFF);
-#endif
+  for(y=0; y<128; y++) {                  // For each row...
+    for(x=0; x<128; x++) {                // For each column...
+        p = polar[y][x];                  // Fetch angle/dist polar data
+        d = (scale * (p & 0x7F)) / 128;   // Distance (Y coord)
+      if((d >= 0) && (d < IMG_HEIGHT)) {  // Within iris area?
+        a = (IMG_WIDTH * (p >> 6)) / 512; // Angle (X coord)
+        p = img[d][a];                    // Fetch 16-bit pixel value from map
+        SPI.transfer(p >> 8);
+        SPI.transfer(p & 0xFF);
       } else { // Out-of-bounds pixel -- show black
-#ifdef PIPELINE
-        while(!(SPSR & _BV(SPIF)));
-        SPDR = 0;
-        while(!(SPSR & _BV(SPIF)));
-        SPDR = 0;
-#else
         SPI.transfer(0);
         SPI.transfer(0);
-#endif
       }
     }
   }
-#ifdef PIPELINE
-  while(!(SPSR & _BV(SPIF)));
-#endif
 
   digitalWrite(TFT_CS, HIGH);
   SPI.endTransaction();
