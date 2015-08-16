@@ -45,8 +45,8 @@ void loop() {
 
 void drawEye(void) {
 
-  uint8_t  x, y, a, lo;
-  uint16_t p;
+  uint8_t  x, y;
+  uint16_t p, a;
   uint32_t d, scale;
 
   scale = analogRead(0); // Read pot on A0
@@ -71,7 +71,7 @@ void drawEye(void) {
         p = polar[y][x];                  // Fetch angle/dist polar data
         d = (scale * (p & 0x7F)) / 128;   // Distance (Y coord)
       if((d >= 0) && (d < IMG_HEIGHT)) {  // Within iris area?
-        a = (IMG_WIDTH * (p >> 6)) / 512; // Angle (X coord)
+        a = (IMG_WIDTH * (p >> 7)) / 512; // Angle (X coord)
         p = img[d][a];                    // Fetch 16-bit pixel value from map
         SPI.transfer(p >> 8);
         SPI.transfer(p & 0xFF);
