@@ -70,7 +70,7 @@ void drawEye(void) {
     for(x=0; x<128; x++) {                // For each column...
         p = polar[y][x];                  // Fetch angle/dist polar data
         d = (scale * (p & 0x7F)) / 128;   // Distance (Y coord)
-      if((d >= 0) && (d < IMG_HEIGHT)) {  // Within iris area?
+      if(d < IMG_HEIGHT) {                // Within iris area?
         a = (IMG_WIDTH * (p >> 7)) / 512; // Angle (X coord)
         p = img[d][a];                    // Fetch 16-bit pixel value from map
         SPI.transfer(p >> 8);
