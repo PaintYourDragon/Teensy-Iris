@@ -87,7 +87,7 @@ void drawEye(void) {
     }
   }
 
-  digitalWrite(TFT_CS, HIGH);
   SPI.endTransaction();
+  digitalWrite(TFT_CS, HIGH);
 }
 
