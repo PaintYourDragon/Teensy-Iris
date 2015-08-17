@@ -13,7 +13,7 @@
 // resides in program flash memory (would be PROGMEM on a normal Arduino,
 // on Teensy3 it's simply 'const') using a polar projection, then two
 // tables are used to quickly de-warp this (performing scaling in the
-// process) to screen coordinates.  So it's very quick (30-40 fps for
+// process) to screen coordinates.  So it's very quick (60-80 fps for
 // regular or overclocked Teensy) while still providing the cool and
 // realistic muscle contraction effect of the iris.
 
@@ -47,7 +47,8 @@ void drawEye(void) {
 
   uint8_t  x, y;
   uint16_t p, a;
-  uint32_t d, scale;
+  uint32_t d, scale, sr;
+  uint32_t tmp __attribute__((unused));
 
   scale = analogRead(0); // Read pot on A0
   // Set up for fixed-point linear scaling calculation later on:
@@ -73,12 +74,16 @@ void drawEye(void) {
       if(d < IMG_HEIGHT) {                // Within iris area?
         a = (IMG_WIDTH * (p >> 7)) / 512; // Angle (X coord)
         p = img[d][a];                    // Fetch 16-bit pixel value from map
-        SPI.transfer(p >> 8);
-        SPI.transfer(p & 0xFF);
-      } else { // Out-of-bounds pixel -- show black
-        SPI.transfer(0);
-        SPI.transfer(0);
+        // SPI FIFO technique from Paul Stoffregen's ILI9341_t3 library.
+        // This line is effectively that lib's writedata16_cont(p):
+        KINETISK_SPI0.PUSHR = p | SPI_PUSHR_CTAS(1) | SPI_PUSHR_CONT;
+      } else { // Out-of-bounds pixel -- show black (writedata16_cont(0)):
+        KINETISK_SPI0.PUSHR = SPI_PUSHR_CTAS(1) | SPI_PUSHR_CONT;
       }
+      do { // And this is from the same lib's waitFifoNotFull() function:
+        sr = KINETISK_SPI0.SR;
+        if(sr & 0xF0) tmp = KINETISK_SPI0.POPR;
+      } while ((sr & (15 << 12)) > (3 << 12));
     }
   }
 
