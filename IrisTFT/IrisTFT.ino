@@ -83,7 +83,7 @@ void drawEye(void) {
       do { // And this is from the same lib's waitFifoNotFull() function:
         sr = KINETISK_SPI0.SR;
         if(sr & 0xF0) tmp = KINETISK_SPI0.POPR;
-      } while ((sr & (15 << 12)) > (3 << 12));
+      } while(sr & 0xC000);
     }
   }
 
