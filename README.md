@@ -1,3 +1,7 @@
+# THIS REPOSITORY IS GOING AWAY SOON. NEWER CODE IS HERE:
+https://github.com/adafruit/Teensy3.1_Eyes
+
+
 # Teensy-Iris
 Moving iris for animatronic eye based on concept by David Boccabella: http://forums.stanwinstonschool.com/discussion/1470/animatronic-pupil-for-eye
 
