@@ -1,5 +1,5 @@
-# THIS REPOSITORY IS GOING AWAY SOON. NEWER CODE IS HERE:
-https://github.com/adafruit/Teensy3.1_Eyes
+# THIS REPOSITORY IS GOING AWAY SOON. NEW PROJECT & CODE IS HERE:
+https://learn.adafruit.com/animated-electronic-eyes-using-teensy-3-1/overview
 
 
 # Teensy-Iris
